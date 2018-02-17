@@ -1,5 +1,5 @@
 AbahsHelper = {}
-AbahsHelper.name = "Abah's Helper"
+AbahsHelper.name = "Abah'sHelper"
 
 local function Print(message)
     d("[Abah's Helper] " .. message)
@@ -12,6 +12,7 @@ function AbahsHelper.OnAddOnLoaded(eventCode, addonName)
     end
     EVENT_MANAGER:UnregisterForEvent(AbahsHelper.name, EVENT_ADD_ON_LOADED)
     EVENT_MANAGER:RegisterForEvent(AbahsHelper.name, EVENT_QUEST_OFFERED, AbahsHelper.OnQuestOffered)
+    EVENT_MANAGER:RegisterForEvent(AbahsHelper.name, EVENT_CHATTER_BEGIN, AbahsHelper.OnChatterBegin)
 end
 
 -- Quest offered callback
@@ -30,7 +31,6 @@ function AbahsHelper.OnQuestAdded(eventCode, journalIndex, questName, objectiveN
     Print("OnQuestAdded")
     if AbahsHelper:IsCorrectQuest(questName) then
         Print("Got the quest.")
-        EVENT_MANAGER:RegisterForEvent(AbahsHelper.name, EVENT_CHATTER_BEGIN, AbahsHelper.OnChatterBegin)
     elseif AbahsHelper:IsWrongQuest(questName) then
         Print("Got wrong quest. Abandoning...")
         AbandonQuest(journalIndex)
@@ -47,6 +47,9 @@ function AbahsHelper.OnChatterBegin(eventCode, optionCount)
     elseif AbahsHelper:IsKari(GetRawUnitName('interact')) then
         Print("It's Kari!")
         EVENT_MANAGER:RegisterForEvent(AbahsHelper.name, EVENT_QUEST_COMPLETE_DIALOG, AbahsHelper.OnQuestCompleteDialog)
+    else
+        Print("It's someone else...")
+        return
     end
     SelectChatterOption(1)
 end
