@@ -1,8 +1,14 @@
 AbahsHelper = {}
 AbahsHelper.name = "Abah'sHelper"
 
+-- Locals
+local debug = false
+local _questName = "The Covetous Countess"
+
 local function Print(message)
-    d("[Abah's Helper] " .. message)
+    if debug then
+        d("[Abah's Helper] " .. message)
+    end
 end
 
 -- Addon Initialization
@@ -12,7 +18,12 @@ function AbahsHelper.OnAddOnLoaded(eventCode, addonName)
     end
     EVENT_MANAGER:UnregisterForEvent(AbahsHelper.name, EVENT_ADD_ON_LOADED)
     EVENT_MANAGER:RegisterForEvent(AbahsHelper.name, EVENT_QUEST_OFFERED, AbahsHelper.OnQuestOffered)
-    EVENT_MANAGER:RegisterForEvent(AbahsHelper.name, EVENT_CHATTER_BEGIN, AbahsHelper.OnChatterBegin)
+
+    -- Register for events if quest is accepted
+    if AbahsHelper:IsQuestInJournal() then
+        EVENT_MANAGER:RegisterForEvent(AbahsHelper.name, EVENT_CHATTER_BEGIN, AbahsHelper.OnChatterBegin)
+        EVENT_MANAGER:RegisterForEvent(AbahsHelper.name, EVENT_QUEST_REMOVED, AbahsHelper.OnQuestRemoved)
+    end
 end
 
 -- Quest offered callback
@@ -31,9 +42,22 @@ function AbahsHelper.OnQuestAdded(eventCode, journalIndex, questName, objectiveN
     Print("OnQuestAdded")
     if AbahsHelper:IsCorrectQuest(questName) then
         Print("Got the quest.")
+        EVENT_MANAGER:RegisterForEvent(AbahsHelper.name, EVENT_CHATTER_BEGIN, AbahsHelper.OnChatterBegin)
+        EVENT_MANAGER:RegisterForEvent(AbahsHelper.name, EVENT_QUEST_REMOVED, AbahsHelper.OnQuestRemoved)
     elseif AbahsHelper:IsWrongQuest(questName) then
         Print("Got wrong quest. Abandoning...")
         AbandonQuest(journalIndex)
+    end
+end
+
+-- Quest removed callback
+-- Unregisters all required events on quest end or abandon
+function AbahsHelper.OnQuestRemoved(eventCode, isCompleted, journalIndex, questName, ...)
+    Print("OnQuestRemoved")
+    if AbahsHelper:IsCorrectQuest(questName) then
+        Print("Abandoned the quest.")
+        EVENT_MANAGER:UnregisterForEvent(AbahsHelper.name, EVENT_CHATTER_BEGIN)
+        EVENT_MANAGER:UnregisterForEvent(AbahsHelper.name, EVENT_QUEST_REMOVED)
     end
 end
 
@@ -59,7 +83,11 @@ end
 function AbahsHelper.OnConversationUpdated(eventCode, ...)
     Print("OnConversationUpdated")
     if AbahsHelper:IsCountess(GetRawUnitName('interact')) then
-        CloseChatter()
+        if IsInGamepadPreferredMode() then
+            GAMEPAD_INTERACTION:CloseChatter()
+        else
+            INTERACTION:CloseChatter()
+        end
         EVENT_MANAGER:UnregisterForEvent(AbahsHelper.name, EVENT_CONVERSATION_UPDATED)
     end
 end
@@ -70,13 +98,33 @@ function AbahsHelper.OnQuestCompleteDialog(eventCode, ...)
     Print("OnQuestCompleteDialog")
     if AbahsHelper:IsKari(GetRawUnitName('interact')) then
         EVENT_MANAGER:UnregisterForEvent(AbahsHelper.name, EVENT_QUEST_COMPLETE_DIALOG)
+        EVENT_MANAGER:RegisterForEvent(AbahsHelper.name, EVENT_INVENTORY_SINGLE_SLOT_UPDATE, AbahsHelper.OnInventorySingleSlotUpdate)
         CompleteQuest()
+    end
+end
+
+-- Inventory slot update callback
+-- Registers items recieved from quest reward and opens the container
+function AbahsHelper.OnInventorySingleSlotUpdate(eventCode, bagId, slotId, isNewItem, ...)
+    Print("OnInventorySingleSlotUpdate")
+    Print(GetItemLink(bagId, slotId))
+
+    if GetItemType(bagId, slotId) ~= ITEMTYPE_CONTAINER then
+        Print("Not a container...")
+        return
+    end
+
+    EVENT_MANAGER:UnregisterForEvent(AbahsHelper.name, EVENT_INVENTORY_SINGLE_SLOT_UPDATE)
+    if IsProtectedFunction("UseItem") then
+        CallSecureProtected("UseItem", bagId, slotId)
+    else
+        UseItem(bagId, slotId)
     end
 end
 
 -- Helper functions
 function AbahsHelper:IsCorrectQuest(questName)
-    return questName == "The Covetous Countess"
+    return questName == _questName
 end
 
 function AbahsHelper:IsWrongQuest(questName)
@@ -93,6 +141,15 @@ end
 
 function AbahsHelper:IsKari(interactName)
     return interactName == "Kari^F"
+end
+
+function AbahsHelper:IsQuestInJournal()
+    for index = 1, GetNumJournalQuests() do
+        if GetJournalQuestInfo(index) == _questName then
+            return true
+        end
+    end
+    return false
 end
 
 EVENT_MANAGER:RegisterForEvent(AbahsHelper.name, EVENT_ADD_ON_LOADED, AbahsHelper.OnAddOnLoaded)

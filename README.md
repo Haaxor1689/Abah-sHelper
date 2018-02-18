@@ -10,6 +10,16 @@ Addon for a Elder Scrolls: Online that helps speed up the process of farming Aba
 
 ## TODO
 
-- [ ] Auto open quest reward
-- [ ] Quest helper for finding where to go pickpocket
-- [ ] Auto interact with Tip Board until correct quest is accepted
+- [x] Open quest reward
+- [ ] ~~Interact with Tip Board until correct quest is accepted~~ (not achievable)
+- [ ] Abandon `The Covetous Countess` quest if you don't have laundered items
+- [x] Don't register chater start callbacks if quest isn't active
+- [x] Correctly close Countess' chatter
+
+## Changelog
+
+- 1.1
+    - All dialogues are skipped
+    - Quest reward is opened upon completion
+    - Debug messages won't spam chat anymore
+    - Addon listens for conversation open only if `The Covetous Countess` quest is active

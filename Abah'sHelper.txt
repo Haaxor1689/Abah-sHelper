@@ -1,5 +1,5 @@
 ## Title: Abah's Helper
-## Version: 1.0
+## Version: 1.1
 ## Author: Haaxor1689
 ## APIVersion: 100022
 
